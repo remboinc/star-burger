@@ -1,4 +1,4 @@
-bundles/**
+bundles/.gitkeep
 node_modules/
 media/
 
