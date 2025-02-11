@@ -2,7 +2,8 @@ import json
 
 from django.http import JsonResponse
 from django.templatetags.static import static
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from .models import Product, Order, OrderItem
 
@@ -30,7 +31,7 @@ def banners_list_api(request):
         'indent': 4,
     })
 
-
+@api_view(['GET'])
 def product_list_api(request):
     products = Product.objects.select_related('category').available()
 
@@ -53,15 +54,12 @@ def product_list_api(request):
             }
         }
         dumped_products.append(dumped_product)
-    return JsonResponse(dumped_products, safe=False, json_dumps_params={
-        'ensure_ascii': False,
-        'indent': 4,
-    })
+    return Response(dumped_products)
 
-
+@api_view(['POST'])
 def register_order(request):
     try:
-        data = json.loads(request.body.decode())
+        data = request.data
 
         order = Order.objects.create(
             firstname=data.get('firstname'),
@@ -88,13 +86,13 @@ def register_order(request):
 
         OrderItem.objects.bulk_create(order_items)
 
-        return JsonResponse({'success': True, 'order_id': order.id}, status=201)
+        return Response({"message": "Заказ обработан!", "data": data})
 
     except Product.DoesNotExist:
-        return JsonResponse({'error': 'Товар не найден'}, status=404)
+        return Response({'error': 'Товар не найден'}, status=404)
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Некорректный JSON'}, status=400)
+        return Response({'error': 'Некорректный JSON'}, status=400)
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return Response({'error': str(e)}, status=500)
