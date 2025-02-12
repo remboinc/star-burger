@@ -31,6 +31,7 @@ def banners_list_api(request):
         'indent': 4,
     })
 
+
 @api_view(['GET'])
 def product_list_api(request):
     products = Product.objects.select_related('category').available()
@@ -56,6 +57,12 @@ def product_list_api(request):
         dumped_products.append(dumped_product)
     return Response(dumped_products)
 
+
+class EmptyProductListError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
 @api_view(['POST'])
 def register_order(request):
     try:
@@ -68,10 +75,21 @@ def register_order(request):
             address=data.get('address'),
         )
 
-        products = data.get('products', [])
+        if 'products' not in data:
+            raise EmptyProductListError('products: Обязательное поле')
+
+        if isinstance(data['products'], str):
+            raise EmptyProductListError('products: Ожидается список, а не строка.')
+
+        if len(data['products']) == 0:
+            raise EmptyProductListError('products: Этот список не может быть пустым.')
+
+        if data['products'] is None:
+            raise EmptyProductListError('products: Это поле не может быть пустым.')
+
         order_items = []
 
-        for item in products:
+        for item in data['products']:
             product_id = item.get('product')
             quantity = item.get('quantity', 1)
 
@@ -86,13 +104,16 @@ def register_order(request):
 
         OrderItem.objects.bulk_create(order_items)
 
-        return Response({"message": "Заказ обработан!", "data": data})
+        return Response({"message": "Заказ принят!", "data": data})
 
     except Product.DoesNotExist:
         return Response({'error': 'Товар не найден'}, status=404)
 
     except json.JSONDecodeError:
         return Response({'error': 'Некорректный JSON'}, status=400)
+
+    except EmptyProductListError as e:
+        return Response({'error': str(e)}, status=422)
 
     except Exception as e:
         return Response({'error': str(e)}, status=500)
