@@ -1,4 +1,7 @@
 import json
+import phonenumbers
+from phonenumbers import is_valid_number
+
 
 from django.http import JsonResponse
 from django.templatetags.static import static
@@ -68,15 +71,34 @@ def register_order(request):
     try:
         data = request.data
 
+        if not all(field in data for field in ['firstname', 'lastname', 'phonenumber', 'address']):
+            raise ValueError('firstname, lastname, phonenumber, address: Обязательное поле')
+
+        if 'products' not in data:
+            raise EmptyProductListError('products: Обязательное поле')
+
+        if data['firstname'] is None and data['lastname'] is None and data['phonenumber'] is None and data['address'] is None:
+            raise EmptyProductListError('firstname, lastname, phonenumber, address: Это поле не может быть пустым.')
+
+        elif data['firstname'] is None:
+            raise EmptyProductListError('firstname: Это поле не может быть пустым.')
+
+        if not data['phonenumber']:
+            raise EmptyProductListError('phonenumber: Это поле не может быть пустым.')
+
+        parsed_number = phonenumbers.parse(data['phonenumber'], None)
+        if not is_valid_number(parsed_number):
+            raise ValueError("phonenumber: Введен некорректный номер телефона.")
+
+        if not isinstance(data['firstname'], str):
+            raise ValueError("firstname: Not a valid string.")
+
         order = Order.objects.create(
             firstname=data.get('firstname'),
             lastname=data.get('lastname'),
             phonenumber=data.get('phonenumber'),
             address=data.get('address'),
         )
-
-        if 'products' not in data:
-            raise EmptyProductListError('products: Обязательное поле')
 
         if isinstance(data['products'], str):
             raise EmptyProductListError('products: Ожидается список, а не строка.')
@@ -106,8 +128,11 @@ def register_order(request):
 
         return Response({"message": "Заказ принят!", "data": data})
 
+    except ValueError as e:
+        return Response({'error': str(e)}, status=422)
+
     except Product.DoesNotExist:
-        return Response({'error': 'Товар не найден'}, status=404)
+        return Response({'error': 'Заказ с неуществующим id продукта'}, status=404)
 
     except json.JSONDecodeError:
         return Response({'error': 'Некорректный JSON'}, status=400)
