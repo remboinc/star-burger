@@ -21,10 +21,10 @@
 
     {% for item in order_items %}
       <tr>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
+          <td>{{ item.order.id }}</td>
+          <td>{{ item.order.firstname }} {{ item.order.lastname }}</td>
+          <td>{{ item.order.phonenumber }}</td>
+          <td>{{ item.order.address }}</td>
       </tr>
     {% endfor %}
    </table>

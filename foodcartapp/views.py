@@ -1,8 +1,6 @@
 import json
-import phonenumbers
-from phonenumbers import is_valid_number
 from rest_framework.serializers import ValidationError
-from .serializers import OrderItemSerializer, OrderSerializer
+from .serializers import OrderSerializer
 
 from django.http import JsonResponse
 from django.templatetags.static import static
