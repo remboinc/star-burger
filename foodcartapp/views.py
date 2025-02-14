@@ -69,23 +69,25 @@ def register_order(request):
         order_serializer.is_valid(raise_exception=True)
 
         order_items = order_serializer.validated_data['products']
-
+        print(order_items)
         order = Order.objects.create(
             firstname=order_serializer.validated_data['firstname'],
             lastname=order_serializer.validated_data['lastname'],
             phonenumber=order_serializer.validated_data['phonenumber'],
             address=order_serializer.validated_data['address'],
         )
-        order_itemsss = [
-            OrderItem(
+        order_itemsss = []
+        for item in order_items:
+            product_instance = Product.objects.get(id=item['product'])
+
+            order_item = OrderItem(
                 order=order,
-                product=order_items[0],
-                quantity=order_items[1],
-                price=order_items,
+                product=product_instance,
+                quantity=item['quantity'],
+                price=product_instance.price
             )
-
-        ]
-
+            order_itemsss.append(order_item)
+        print(order_itemsss)
         OrderItem.objects.bulk_create(order_itemsss)
 
         return Response({"message": "Заказ принят!", "data": order_serializer.data}, status=201)
