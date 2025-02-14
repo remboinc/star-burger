@@ -168,7 +168,8 @@ class OrderItem(models.Model):
         Product,
         on_delete=models.CASCADE,
         related_name="order_items",
-        verbose_name="Товар"
+        verbose_name="Товар",
+        db_index=True,
     )
     quantity = models.PositiveIntegerField(
         "Количество",

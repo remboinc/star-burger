@@ -1,7 +1,8 @@
 import json
 import phonenumbers
 from phonenumbers import is_valid_number
-
+from rest_framework.serializers import ValidationError
+from .serializers import OrderItemSerializer, OrderSerializer
 
 from django.http import JsonResponse
 from django.templatetags.static import static
@@ -61,74 +62,35 @@ def product_list_api(request):
     return Response(dumped_products)
 
 
-class EmptyProductListError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-
-
 @api_view(['POST'])
 def register_order(request):
     try:
-        data = request.data
+        order_serializer = OrderSerializer(data=request.data)
+        order_serializer.is_valid(raise_exception=True)
 
-        if not all(field in data for field in ['firstname', 'lastname', 'phonenumber', 'address']):
-            raise ValueError('firstname, lastname, phonenumber, address: Обязательное поле')
-
-        if 'products' not in data:
-            raise EmptyProductListError('products: Обязательное поле')
-
-        if data['firstname'] is None and data['lastname'] is None and data['phonenumber'] is None and data['address'] is None:
-            raise EmptyProductListError('firstname, lastname, phonenumber, address: Это поле не может быть пустым.')
-
-        elif data['firstname'] is None:
-            raise EmptyProductListError('firstname: Это поле не может быть пустым.')
-
-        if not data['phonenumber']:
-            raise EmptyProductListError('phonenumber: Это поле не может быть пустым.')
-
-        parsed_number = phonenumbers.parse(data['phonenumber'], None)
-        if not is_valid_number(parsed_number):
-            raise ValueError("phonenumber: Введен некорректный номер телефона.")
-
-        if not isinstance(data['firstname'], str):
-            raise ValueError("firstname: Not a valid string.")
+        order_items = order_serializer.validated_data['products']
 
         order = Order.objects.create(
-            firstname=data.get('firstname'),
-            lastname=data.get('lastname'),
-            phonenumber=data.get('phonenumber'),
-            address=data.get('address'),
+            firstname=order_serializer.validated_data['firstname'],
+            lastname=order_serializer.validated_data['lastname'],
+            phonenumber=order_serializer.validated_data['phonenumber'],
+            address=order_serializer.validated_data['address'],
         )
-
-        if isinstance(data['products'], str):
-            raise EmptyProductListError('products: Ожидается список, а не строка.')
-
-        if len(data['products']) == 0:
-            raise EmptyProductListError('products: Этот список не может быть пустым.')
-
-        if data['products'] is None:
-            raise EmptyProductListError('products: Это поле не может быть пустым.')
-
-        order_items = []
-
-        for item in data['products']:
-            product_id = item.get('product')
-            quantity = item.get('quantity', 1)
-
-            product = Product.objects.get(id=product_id)
-
-            order_items.append(OrderItem(
+        order_itemsss = [
+            OrderItem(
                 order=order,
-                product=product,
-                quantity=quantity,
-                price=product.price
-            ))
+                product=order_items[0],
+                quantity=order_items[1],
+                price=order_items,
+            )
 
-        OrderItem.objects.bulk_create(order_items)
+        ]
 
-        return Response({"message": "Заказ принят!", "data": data})
+        OrderItem.objects.bulk_create(order_itemsss)
 
-    except ValueError as e:
+        return Response({"message": "Заказ принят!", "data": order_serializer.data}, status=201)
+
+    except ValidationError as e:
         return Response({'error': str(e)}, status=422)
 
     except Product.DoesNotExist:
@@ -136,9 +98,6 @@ def register_order(request):
 
     except json.JSONDecodeError:
         return Response({'error': 'Некорректный JSON'}, status=400)
-
-    except EmptyProductListError as e:
-        return Response({'error': str(e)}, status=422)
 
     except Exception as e:
         return Response({'error': str(e)}, status=500)
