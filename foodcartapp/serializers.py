@@ -6,8 +6,10 @@ from .models import Order, OrderItem
 
 
 class OrderItemSerializer(Serializer):
-    product = IntegerField()
-    quantity = IntegerField(default=1)
+    class Meta:
+        model = OrderItem
+        fields = ['product', 'quantity',]
+
 
 
 class OrderSerializer(ModelSerializer):
