@@ -124,5 +124,4 @@ class OrderItemAdmin(admin.ModelAdmin):
         'order',
         'product',
         'quantity',
-        'price',
     ]
