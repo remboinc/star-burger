@@ -104,6 +104,11 @@ class ProductAdmin(admin.ModelAdmin):
     get_image_list_preview.short_description = 'превью'
 
 
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 1
+
+
 @admin.register(ProductCategory)
 class ProductAdmin(admin.ModelAdmin):
     pass
@@ -116,6 +121,8 @@ class OrderAdmin(admin.ModelAdmin):
         'lastname',
         'phonenumber',
     ]
+
+    inlines = [OrderItemInline]
 
 
 @admin.register(OrderItem)
