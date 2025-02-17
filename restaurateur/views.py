@@ -98,8 +98,7 @@ def view_orders(request):
     order_summary = []
     for order in orders:
         order_items = order.items.all()
-        if not order_items:
-            continue
+
         total_price = sum(item.product.price * item.quantity for item in order_items)
 
         order_summary.append({
